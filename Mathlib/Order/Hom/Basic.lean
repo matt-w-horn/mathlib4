@@ -486,6 +486,13 @@ def piIso : (α →o ∀ i, π i) ≃o ∀ i, α →o π i where
 def Subtype.val (p : α → Prop) : Subtype p →o α :=
   ⟨_root_.Subtype.val, fun _ _ h => h⟩
 
+/-- The restriction of a function that is monotone on `s` and maps `s` into `t`, as a bundled
+monotone map `s →o t`. -/
+@[simps -fullyApplied]
+def _root_.Set.MapsTo.restrictOrderHom {f : α → β} {s : Set α} {t : Set β} (h : Set.MapsTo f s t)
+    (hf : MonotoneOn f s) : s →o t :=
+  ⟨h.restrict f s t, fun x y hxy => hf x.2 y.2 hxy⟩
+
 /-- `Subtype.impEmbedding` as an order embedding. -/
 @[simps!]
 def _root_.Subtype.orderEmbedding {p q : α → Prop} (h : ∀ a, p a → q a) :
