@@ -127,6 +127,16 @@ theorem gfp_induction {p : α → Prop} (step : ∀ a, p a → f.gfp ≤ a → p
 theorem lfp_le_gfp : f.lfp ≤ f.gfp :=
   f.lfp_le_fixed f.isFixedPt_gfp
 
+/-- The orbit of `⊥` stays below the least fixed point. -/
+theorem iterate_bot_le_lfp (n : ℕ) : (⇑f)^[n] ⊥ ≤ f.lfp := by
+  induction n with
+  | zero => exact bot_le
+  | succ n ih => rw [Function.iterate_succ_apply']; exact (f.mono ih).trans_eq f.map_lfp
+
+/-- The orbit of `⊤` stays above the greatest fixed point. -/
+theorem gfp_le_iterate_top (n : ℕ) : f.gfp ≤ (⇑f)^[n] ⊤ :=
+  f.dual.iterate_bot_le_lfp n
+
 end Basic
 
 section Eqn
@@ -204,6 +214,50 @@ theorem le_prevFixed_iff {x : α} (hx : f x ≤ x) {y : fixedPoints f} :
 theorem le_prevFixed {x : α} (hx : f x ≤ x) {y : fixedPoints f} (h : ↑y ≤ x) :
     y ≤ f.prevFixed x hx :=
   (f.le_prevFixed_iff hx).2 h
+
+/-- `f.nextFixed a ha` is below every prefixed point above `a`, not only every fixed point. -/
+theorem nextFixed_le_of_le {a b : α} (ha : a ≤ f a) (hb : f b ≤ b) (hab : a ≤ b) :
+    (f.nextFixed a ha : α) ≤ b :=
+  lfp_le _ (sup_le hab hb)
+
+/-- `f.prevFixed b hb` is above every postfixed point below `b`, not only every fixed point. -/
+theorem le_prevFixed_of_le {a b : α} (ha : a ≤ f a) (hb : f b ≤ b) (hab : a ≤ b) :
+    a ≤ (f.prevFixed b hb : α) :=
+  le_gfp _ (le_inf hab ha)
+
+theorem nextFixed_le_prevFixed {a b : α} (ha : a ≤ f a) (hb : f b ≤ b) (hab : a ≤ b) :
+    (f.nextFixed a ha : α) ≤ (f.prevFixed b hb : α) :=
+  lfp_le _ (sup_le (f.le_prevFixed_of_le ha hb hab) (f.prevFixed b hb).2.le)
+
+/-- The orbit of a postfixed point stays below the least fixed point above it. -/
+theorem iterate_le_nextFixed {x : α} (hx : x ≤ f x) (n : ℕ) :
+    (⇑f)^[n] x ≤ (f.nextFixed x hx : α) := by
+  induction n with
+  | zero => exact f.le_nextFixed hx
+  | succ n ih =>
+    rw [Function.iterate_succ_apply']
+    exact (f.mono ih).trans_eq (f.nextFixed x hx).2.eq
+
+/-- The orbit of a prefixed point stays above the greatest fixed point below it. -/
+theorem prevFixed_le_iterate {x : α} (hx : f x ≤ x) (n : ℕ) :
+    (f.prevFixed x hx : α) ≤ (⇑f)^[n] x := by
+  induction n with
+  | zero => exact f.prevFixed_le hx
+  | succ n ih =>
+    rw [Function.iterate_succ_apply']
+    exact (f.prevFixed x hx).2.eq.symm.trans_le (f.mono ih)
+
+variable {f} in
+/-- `nextFixed` is monotone in the map and in the anchor. -/
+theorem nextFixed_mono {g : α →o α} (hfg : f ≤ g) {x y : α} (hxy : x ≤ y) (hx : x ≤ f x)
+    (hy : y ≤ g y) : (f.nextFixed x hx : α) ≤ (g.nextFixed y hy : α) :=
+  lfp.mono (sup_le_sup ((const α).mono hxy) hfg)
+
+variable {f} in
+/-- `prevFixed` is monotone in the map and in the anchor. -/
+theorem prevFixed_mono {g : α →o α} (hfg : f ≤ g) {x y : α} (hxy : x ≤ y) (hx : f x ≤ x)
+    (hy : g y ≤ y) : (f.prevFixed x hx : α) ≤ (g.prevFixed y hy : α) :=
+  gfp.mono (inf_le_inf ((const α).mono hxy) hfg)
 
 theorem le_map_sup_fixedPoints (x y : fixedPoints f) : (x ⊔ y : α) ≤ f (x ⊔ y) :=
   calc
